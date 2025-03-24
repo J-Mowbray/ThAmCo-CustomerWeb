@@ -1,8 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
 using CustomerWeb.Models;
-using CustomerWeb.Services;
+using Microsoft.AspNetCore.Mvc;
+using ThAmCo.Web.Services;
 
-namespace CustomerWeb.Controllers;
+namespace ThAmCo.Web.Controllers;
 
 public class ProductsController : Controller
 {
