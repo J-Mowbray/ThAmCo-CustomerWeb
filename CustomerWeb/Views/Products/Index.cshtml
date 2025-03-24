@@ -1,0 +1,89 @@
+@model ProductsListViewModel
+@{
+    ViewData["Title"] = "Products";
+}
+
+<h1>Browse Products</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="get" class="form-inline">
+            <div class="input-group">
+                <input type="text" class="form-control" name="searchTerm" value="@Model.SearchTerm" placeholder="Search products..." />
+                <button type="submit" class="btn btn-primary">Search</button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+<div class="row">
+    <!-- Categories sidebar -->
+    <div class="col-md-3">
+        <div class="list-group">
+            <a asp-action="Index" class="list-group-item list-group-item-action @(Model.CategoryId == null ? "active" : "")">
+                All Categories
+            </a>
+            @foreach (var category in Model.Categories)
+            {
+                <a asp-action="Index" asp-route-categoryId="@category.CategoryId" 
+                   class="list-group-item list-group-item-action @(Model.CategoryId == category.CategoryId ? "active" : "")">
+                    @category.CategoryName
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Products grid -->
+    <div class="col-md-9">
+        <div class="row">
+            @foreach (var product in Model.Products)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@product.Name</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">@product.BrandName</h6>
+                            <p class="card-text">
+                                @(product.Description?.Length > 100 ? product.Description.Substring(0, 97) + "..." : product.Description)
+                            </p>
+                            <p class="card-text">
+                                <strong>Price:</strong> @product.Price.ToString("C")
+                            </p>
+                            <div class="mb-2">
+                                @if (product.InStock)
+                                {
+                                    <span class="badge bg-success">In Stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                    @if (product.ExpectedRestock.HasValue)
+                                    {
+                                        <small class="text-muted">Expected: @product.ExpectedRestock.Value.ToString("d")</small>
+                                    }
+                                }
+                            </div>
+                            <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-primary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!Model.Products.Any())
+        {
+            <div class="alert alert-info">
+                No products found.
+            </div>
+        }
+    </div>
+</div>
