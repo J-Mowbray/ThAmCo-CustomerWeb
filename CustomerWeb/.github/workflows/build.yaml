@@ -1,0 +1,118 @@
+name: Deploy ThAmCo Customer Web
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Test
+      run: dotnet test --no-build --configuration Release
+    
+    - name: Publish
+      run: dotnet publish --configuration Release --output ./publish
+    
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'ThAmCoCustomerWebApp'  # Replace with your Azure Web App name
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ./publish
+    
+    # Wait for app to be available and check health
+    - name: Wait for Web App and Check Health
+      run: |
+        echo "Waiting for web app to be fully available..."
+        # Initial wait
+        sleep 30
+        
+        # Define URLs
+        WEB_APP_URL="https://thamcocustomerwebapp-ctehf9fsd8btb3ay.uksouth-01.azurewebsites.net/"
+        HEALTH_URL="${WEB_APP_URL}/health"
+        
+        # Try health check up to 5 times with increasing backoff
+        for i in {1..5}; do
+          echo "Attempt $i: Checking web app health..."
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
+          
+          if [ "$HEALTH_STATUS" == "200" ]; then
+            echo "✅ Web app is healthy!"
+            break
+          else
+            echo "❌ Web app is not ready yet. Status: $HEALTH_STATUS"
+            if [ $i -eq 5 ]; then
+              echo "⛔ Web app failed to become healthy after 5 attempts."
+              echo "Continuing anyway but sync may fail."
+            else
+              # Exponential backoff: 10s, 20s, 40s, 80s
+              WAIT_TIME=$((10 * 2**(i-1)))
+              echo "Waiting $WAIT_TIME seconds before next attempt..."
+              sleep $WAIT_TIME
+            fi
+          fi
+        done
+    
+    # Trigger Product Sync with improved error handling
+    - name: Trigger Product Sync
+      run: |
+        echo "Triggering product sync..."
+        SYNC_URL="https://thamcoproductcatalogue-cuc2dzgkb9e3ehej.uksouth-01.azurewebsites.net/debug/sync-all-products"
+        
+        # Send POST request to trigger product sync with proper error handling
+        SYNC_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST $SYNC_URL)
+        STATUS_CODE=$(echo "$SYNC_RESPONSE" | tail -n1)
+        RESPONSE_BODY=$(echo "$SYNC_RESPONSE" | sed '$d')
+        
+        if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 300 ]; then
+          echo "✅ Product sync triggered successfully!"
+          if [ -n "$RESPONSE_BODY" ]; then
+            echo "Response: $RESPONSE_BODY"
+          fi
+        else
+          echo "⛔ Failed to trigger product sync. Status code: $STATUS_CODE"
+          if [ -n "$RESPONSE_BODY" ]; then
+            echo "Response: $RESPONSE_BODY"
+          fi
+          
+          # Retry once after a delay
+          echo "Retrying after 30 seconds..."
+          sleep 30
+          
+          echo "Sending retry request..."
+          RETRY_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST $SYNC_URL)
+          RETRY_STATUS=$(echo "$RETRY_RESPONSE" | tail -n1)
+          RETRY_BODY=$(echo "$RETRY_RESPONSE" | sed '$d')
+          
+          if [ "$RETRY_STATUS" -ge 200 ] && [ "$RETRY_STATUS" -lt 300 ]; then
+            echo "✅ Product sync retry succeeded!"
+            if [ -n "$RETRY_BODY" ]; then
+              echo "Response: $RETRY_BODY"
+            fi
+          else
+            echo "⛔ Product sync retry failed. Status code: $RETRY_STATUS"
+            if [ -n "$RETRY_BODY" ]; then
+              echo "Response: $RETRY_BODY"
+            fi
+            echo "Deployment completed, but product sync was unsuccessful."
+            # Failing the workflow might be too strict, but you can uncomment the line below if preferred
+            # exit 1
+          fi
+        fi
