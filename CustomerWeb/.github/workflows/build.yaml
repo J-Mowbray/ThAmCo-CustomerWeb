@@ -2,7 +2,7 @@ name: Build and Deploy ThAmCo Customer Web
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main]
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
