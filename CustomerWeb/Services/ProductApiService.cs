@@ -318,56 +318,69 @@ public class ProductApiService : IProductApiService
 
     // Private helper method to fetch products from API
     private async Task<IEnumerable<ProductViewModel>> FetchProductsFromApiAsync(
-        string? searchTerm = null,
-        int? categoryId = null,
-        int? brandId = null,
-        decimal? minPrice = null,
-        decimal? maxPrice = null)
+    string? searchTerm = null,
+    int? categoryId = null,
+    int? brandId = null,
+    decimal? minPrice = null,
+    decimal? maxPrice = null)
+{
+    try
     {
-        try
+        // Log the API request parameters
+        _logger.LogInformation("Fetching products - SearchTerm: {SearchTerm}, CategoryId: {CategoryId}, BrandId: {BrandId}, MinPrice: {MinPrice}, MaxPrice: {MaxPrice}",
+            searchTerm ?? "null", categoryId?.ToString() ?? "null", brandId?.ToString() ?? "null", minPrice?.ToString() ?? "null", maxPrice?.ToString() ?? "null");
+
+        var queryParams = new List<string>();
+
+        if (!string.IsNullOrEmpty(searchTerm))
         {
-            // Log the API request parameters
-            _logger.LogInformation("Fetching products - SearchTerm: {SearchTerm}, CategoryId: {CategoryId}",
-                searchTerm ?? "null", categoryId?.ToString() ?? "null");
-
-            // Build query parameters to match API format
-            var queryParams = new List<string>();
-
-            if (!string.IsNullOrEmpty(searchTerm))
-                queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
-
-            if (categoryId.HasValue)
-                queryParams.Add($"category_id={categoryId}");
-
-            if (brandId.HasValue)
-                queryParams.Add($"brand_id={brandId}");
-
-            if (minPrice.HasValue)
-                queryParams.Add($"min_price={minPrice}");
-
-            if (maxPrice.HasValue)
-                queryParams.Add($"max_price={maxPrice}");
-
-            var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-
-            // Log the full API request URL
-            _logger.LogInformation("API request URL: {Url}", $"api/Product{queryString}");
-
-            // Call the API
-            var products = await _httpClient.GetFromJsonAsync<List<ProductViewModel>>($"api/Product{queryString}");
-
-            _logger.LogInformation("Retrieved {Count} products from API", products?.Count ?? 0);
-            return products ?? new List<ProductViewModel>();
+            queryParams.Add($"category_name={Uri.EscapeDataString(searchTerm)}"); // Use category_name for search term
         }
-        catch (HttpRequestException ex)
+
+        if (categoryId.HasValue)
         {
-            _logger.LogError(ex, "HTTP error occurred while fetching products: {Message}", ex.Message);
-            return Array.Empty<ProductViewModel>();
+            queryParams.Add($"category_id={categoryId}"); // Send category_id
         }
-        catch (Exception ex)
+
+        if (brandId.HasValue)
         {
-            _logger.LogError(ex, "Error fetching products from API: {Message}", ex.Message);
-            return Array.Empty<ProductViewModel>();
+            queryParams.Add($"brand_id={brandId}");
         }
+
+        if (minPrice.HasValue)
+        {
+            queryParams.Add($"min_price={minPrice}");
+        }
+
+        if (maxPrice.HasValue)
+        {
+            queryParams.Add($"max_price={maxPrice}");
+        }
+
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var fullUrl = $"api/Product{queryString}"; // Corrected URL
+
+        // Log the full API request URL
+        _logger.LogInformation("API request URL: {Url}", fullUrl);
+
+        // Call the API
+        var response = await _httpClient.GetAsync(fullUrl);
+        _logger.LogInformation("API response status code: {StatusCode}", response.StatusCode);
+
+        var products = await response.Content.ReadFromJsonAsync<List<ProductViewModel>>();
+
+        _logger.LogInformation("Retrieved {Count} products from API", products?.Count ?? 0);
+        return products ?? new List<ProductViewModel>();
     }
+    catch (HttpRequestException ex)
+    {
+        _logger.LogError(ex, "HTTP error occurred while fetching products: {Message}", ex.Message);
+        return Array.Empty<ProductViewModel>();
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error fetching products from API: {Message}", ex.Message);
+        return Array.Empty<ProductViewModel>();
+    }
+}
 }
