@@ -49,15 +49,15 @@ public class ProductsController : Controller
         try
         {
             var product = await _productService.GetProductByIdAsync(id);
-            
+
             if (product == null)
             {
                 return NotFound();
             }
-            
+
             // Pass last update time to the view
             ViewBag.LastStockUpdate = _productService.GetLastUpdateTime();
-            
+
             return View(product);
         }
         catch (Exception ex)

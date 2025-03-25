@@ -33,12 +33,12 @@ public interface IProductApiService
     /// Refreshes stock information for all products
     /// </summary>
     Task RefreshStockInformationAsync();
-    
+
     /// <summary>
     /// Manually triggers the API's product sync process
     /// </summary>
     Task TriggerProductSyncAsync();
-    
+
     /// <summary>
     /// Gets the timestamp of the last stock update
     /// </summary>

@@ -27,7 +27,7 @@ public class StockUpdateService : BackgroundService
             try
             {
                 await UpdateStockInformationAsync();
-                
+
                 _logger.LogInformation("Next stock update scheduled in {Minutes} minutes", _updateInterval.TotalMinutes);
                 await Task.Delay(_updateInterval, stoppingToken);
             }
@@ -39,25 +39,25 @@ public class StockUpdateService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred in stock update service");
-                
+
                 // Wait a bit before retrying after an error
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }
-        
+
         _logger.LogInformation("Stock update service stopping");
     }
 
     private async Task UpdateStockInformationAsync()
     {
         _logger.LogInformation("Updating stock information");
-        
+
         // Create a scope to resolve scoped services
         using var scope = _serviceProvider.CreateScope();
         var productService = scope.ServiceProvider.GetRequiredService<IProductApiService>();
-        
+
         await productService.RefreshStockInformationAsync();
-        
+
         _logger.LogInformation("Stock information successfully updated");
     }
 }
