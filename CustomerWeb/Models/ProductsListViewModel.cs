@@ -9,4 +9,5 @@ public class ProductsListViewModel
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public List<CategoryViewModel> Categories { get; set; } = new List<CategoryViewModel>();
+    public DateTime LastStockUpdate { get; set; } = DateTime.Now;
 }

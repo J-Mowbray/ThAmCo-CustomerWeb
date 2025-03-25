@@ -1,16 +1,16 @@
 using CustomerWeb.Models;
 using Microsoft.AspNetCore.Mvc;
-using ThAmCo.Web.Services;
+using CustomerWeb.Services;
 
-namespace ThAmCo.Web.Controllers;
+namespace CustomerWeb.Controllers;
 
 public class ProductsController : Controller
 {
-    private readonly ProductApiService _productService;
+    private readonly IProductApiService _productService;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
-        ProductApiService productService,
+        IProductApiService productService,
         ILogger<ProductsController> logger)
     {
         _productService = productService;
@@ -23,13 +23,15 @@ public class ProductsController : Controller
         {
             var products = await _productService.GetProductsAsync(searchTerm, categoryId);
             var categories = await _productService.GetCategoriesAsync();
+            var lastUpdateTime = _productService.GetLastUpdateTime();
 
             var viewModel = new ProductsListViewModel
             {
                 Products = products,
                 SearchTerm = searchTerm,
                 CategoryId = categoryId,
-                Categories = categories.ToList()
+                Categories = categories.ToList(),
+                LastStockUpdate = lastUpdateTime
             };
 
             return View(viewModel);
@@ -52,6 +54,9 @@ public class ProductsController : Controller
             {
                 return NotFound();
             }
+            
+            // Pass last update time to the view
+            ViewBag.LastStockUpdate = _productService.GetLastUpdateTime();
             
             return View(product);
         }

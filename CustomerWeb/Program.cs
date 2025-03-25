@@ -1,14 +1,18 @@
 using Polly;
 using Polly.Extensions.Http;
-using ThAmCo.Web.Services;
+using CustomerWeb.BackgroundServices;
+using CustomerWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Configure ProductApiService with Polly for resilience
-builder.Services.AddHttpClient<ProductApiService>(client =>
+// Add memory cache
+builder.Services.AddMemoryCache();
+
+// Register services
+builder.Services.AddHttpClient<IProductApiService, ProductApiService>(client =>
 {
     // In development, use localhost; in production, use Azure URL
     var baseUrl = builder.Environment.IsDevelopment() 
@@ -20,7 +24,45 @@ builder.Services.AddHttpClient<ProductApiService>(client =>
 .AddPolicyHandler(GetRetryPolicy())
 .AddPolicyHandler(GetCircuitBreakerPolicy());
 
+// Register the background service for stock updates
+builder.Services.AddHostedService<StockUpdateService>();
+
 var app = builder.Build();
+
+// In development, trigger initial product sync
+if (app.Environment.IsDevelopment())
+{
+    // Use a scope to resolve services
+    using (var scope = app.Services.CreateScope())
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var productService = scope.ServiceProvider.GetRequiredService<IProductApiService>();
+        
+        logger.LogInformation("Development environment detected - triggering initial product sync");
+        
+        try
+        {
+            // Run this without awaiting to avoid blocking startup
+            // This is for development convenience only
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await productService.TriggerProductSyncAsync();
+                    logger.LogInformation("Initial product sync completed successfully");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error during initial product sync");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error setting up initial product sync");
+        }
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
