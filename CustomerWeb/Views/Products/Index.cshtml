@@ -9,7 +9,8 @@
     <div class="col-md-6">
         <form method="get" class="form-inline">
             <div class="input-group">
-                <input type="text" class="form-control" name="searchTerm" value="@Model.SearchTerm" placeholder="Search products..." />
+                <input type="text" class="form-control" name="searchTerm" value="@Model.SearchTerm"
+                    placeholder="Search products..." />
                 <button type="submit" class="btn btn-primary">Search</button>
                 @if (!string.IsNullOrEmpty(Model.SearchTerm))
                 {
@@ -19,14 +20,26 @@
         </form>
     </div>
     <div class="col-md-6 text-end">
-        <small class="text-muted">
-            Stock information last updated: @Model.LastStockUpdate.ToString("yyyy-MM-dd HH:mm:ss")
-            <span class="ms-2 badge bg-info" title="Stock updates every 5 minutes">
-                <i class="bi bi-arrow-clockwise"></i> Auto-refresh
-            </span>
-        </small>
+        @if (User.Identity.IsAuthenticated)
+        {
+            <small class="text-muted">
+                Stock information last updated: @Model.LastStockUpdate.ToString("yyyy-MM-dd HH:mm:ss")
+                <span class="ms-2 badge bg-info" title="Stock updates every 5 minutes">
+                    <i class="bi bi-arrow-clockwise"></i> Auto-refresh
+                </span>
+            </small>
+        }
     </div>
 </div>
+
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        You're seeing enhanced product information including real-time stock status as a registered customer.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
 {
@@ -37,13 +50,14 @@
     <!-- Categories sidebar -->
     <div class="col-md-3">
         <div class="list-group">
-            <a asp-action="Index" class="list-group-item list-group-item-action @(Model.CategoryId == null ? "active" : "")">
+            <a asp-action="Index"
+                class="list-group-item list-group-item-action @(Model.CategoryId == null ? "active" : "")">
                 All Categories
             </a>
             @foreach (var category in Model.Categories)
             {
-                <a asp-action="Index" asp-route-categoryId="@category.CategoryId" 
-                   class="list-group-item list-group-item-action @(Model.CategoryId == category.CategoryId ? "active" : "")">
+                <a asp-action="Index" asp-route-categoryId="@category.CategoryId"
+                    class="list-group-item list-group-item-action @(Model.CategoryId == category.CategoryId ? "active" : "")">
                     @category.CategoryName
                 </a>
             }
@@ -61,23 +75,34 @@
                             <h5 class="card-title">@product.Name</h5>
                             <h6 class="card-subtitle mb-2 text-muted">@product.BrandName</h6>
                             <p class="card-text">
-                                @(product.Description?.Length > 100 ? product.Description.Substring(0, 97) + "..." : product.Description)
-                            </p>
-                            <p class="card-text">
-                                <strong>Price:</strong> @product.Price.ToString("C")
-                            </p>
-                            <div class="mb-2">
-                                @if (product.InStock)
+                                @(product.Description?.Length > 100 ? product.Description.Substring(0, 97) + "..." :
+                                                            product.Description)
+                        </p>
+                        <p class="card-text">
+                            <strong>Price:</strong> @product.Price.ToString("C")
+                        </p>
+                        <div class="mb-2">
+                            @if (User.Identity.IsAuthenticated)
                                 {
-                                    <span class="badge bg-success">In Stock</span>
+                                    @if (product.InStock)
+                                    {
+                                        <span class="badge bg-success">In Stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Out of Stock</span>
+                                        @if (product.ExpectedRestock.HasValue)
+                                        {
+                                            <small class="text-muted">Expected: @product.ExpectedRestock.Value.ToString("d")</small>
+                                        }
+                                    }
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger">Out of Stock</span>
-                                    @if (product.ExpectedRestock.HasValue)
-                                    {
-                                        <small class="text-muted">Expected: @product.ExpectedRestock.Value.ToString("d")</small>
-                                    }
+                                    <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Context.Request.Path"
+                                        class="badge bg-secondary text-decoration-none">
+                                        <i class="bi bi-lock"></i> Login to see stock status
+                                    </a>
                                 }
                             </div>
                             <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-primary">View Details</a>
