@@ -14,9 +14,16 @@
 
     <div class="card mb-4">
         <div class="card-header">
-            <h1>@Model.Name</h1>
-            <span class="badge bg-secondary">@Model.CategoryName</span>
-            <span class="badge bg-info">@Model.BrandName</span>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>@Model.Name</h1>
+                    <span class="badge bg-secondary">@Model.CategoryName</span>
+                    <span class="badge bg-info">@Model.BrandName</span>
+                </div>
+                <small class="text-muted">
+                    Stock information last updated: @ViewBag.LastStockUpdate.ToString("yyyy-MM-dd HH:mm:ss")
+                </small>
+            </div>
         </div>
         <div class="card-body">
             <div class="row">

@@ -18,6 +18,14 @@
             </div>
         </form>
     </div>
+    <div class="col-md-6 text-end">
+        <small class="text-muted">
+            Stock information last updated: @Model.LastStockUpdate.ToString("yyyy-MM-dd HH:mm:ss")
+            <span class="ms-2 badge bg-info" title="Stock updates every 5 minutes">
+                <i class="bi bi-arrow-clockwise"></i> Auto-refresh
+            </span>
+        </small>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
