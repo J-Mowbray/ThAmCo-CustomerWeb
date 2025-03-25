@@ -1,4 +1,4 @@
-name: Deploy ThAmCo Customer Web
+name: Build and Deploy ThAmCo Customer Web
 
 on:
   push:
