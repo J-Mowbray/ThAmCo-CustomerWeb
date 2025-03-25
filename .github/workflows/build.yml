@@ -36,40 +36,7 @@ jobs:
         app-name: 'ThAmCoCustomerWebApp'  # Replace with your Azure Web App name
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: ./publish
-    
-    # Wait for app to be available and check health
-    - name: Wait for Web App and Check Health
-      run: |
-        echo "Waiting for web app to be fully available..."
-        # Initial wait
-        sleep 30
         
-        # Define URLs
-        WEB_APP_URL="https://thamcocustomerwebapp-ctehf9fsd8btb3ay.uksouth-01.azurewebsites.net/"
-        HEALTH_URL="${WEB_APP_URL}/health"
-        
-        # Try health check up to 5 times with increasing backoff
-        for i in {1..5}; do
-          echo "Attempt $i: Checking web app health..."
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
-          
-          if [ "$HEALTH_STATUS" == "200" ]; then
-            echo "✅ Web app is healthy!"
-            break
-          else
-            echo "❌ Web app is not ready yet. Status: $HEALTH_STATUS"
-            if [ $i -eq 5 ]; then
-              echo "⛔ Web app failed to become healthy after 5 attempts."
-              echo "Continuing anyway but sync may fail."
-            else
-              # Exponential backoff: 10s, 20s, 40s, 80s
-              WAIT_TIME=$((10 * 2**(i-1)))
-              echo "Waiting $WAIT_TIME seconds before next attempt..."
-              sleep $WAIT_TIME
-            fi
-          fi
-        done
-    
     # Trigger Product Sync with improved error handling
     - name: Trigger Product Sync
       run: |
